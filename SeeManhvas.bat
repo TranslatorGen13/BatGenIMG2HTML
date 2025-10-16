@@ -1,30 +1,27 @@
-::Ver 1.15
+::Ver 1.32
 @Echo off
 SetLocal EnableExtensions DisableDelayedExpansion
 
-::Запоминание кодировки для возращения старой кодировки по завершению скрипта 
 for /f "tokens=2 delims=:." %%a in ('chcp') do set "kodstr=%%a"
 chcp 65001 > NUL
 
 title Сгенерировать HTML для просмотра 
-::Константы
+::CONST
+Set WIDTH=80
+::Ширина зоны просмтра в процентах
+
 set OutFile=Просмотр.html
 set TempFile=temp.html
-::Форматы изображений для вставки, можно заменить на маску имени необходимых картинок
 set Templates="*.jpg" "*.jpeg" "*.png" "*.gif" "*.bmp" "*.tiff" "*.tif" "*.webp" "*.svg" "*.raw" "*.heic" "*.heif" "*.avif"
-::Удаление старого файла просмотра
 if exist %OutFile% (del %OutFile%)
-::Поиск начала html кода в этом файле
+
+setlocal EnableDelayedExpansion
 for /f "delims=[]" %%N in ('find /n "HTMLCodeFirstStart" ^<"%~f0"') do set /a sta=%%N
-::Вставка всего html кода во временный файл
-more +%sta% >%TempFile% <"%~f0"
-::Посточное копирование временного файла с втавкой картинок (функция Insert) вместо тега InsertImages
-for /f "tokens=*" %%x in (%TempFile%) do (
+for /f "skip=%sta% tokens=* usebackq" %%x in ("%~f0") do (
 	if "%%x"=="::-InsertImages-" (call :Insert)else echo %%x>>%OutFile%
 )
-del %TempFile%
+setlocal DisableDelayedExpansion
 
-::Запрос на открытие документа в браузере по умолчанию
 set "isLaunch=Y"
 set /p isLaunch="Открыть сгенерированную страницу?(По умолчанию Y) Y/N "
 if %isLaunch%==Y (start %OutFile%)
@@ -34,13 +31,9 @@ goto :eof
 
 :Insert
 REM dir /a-d /B /N /O:N /S %Templates%
-set /a counter=0
-::Включение режима отложенного расширения для подстановки текущих переменных внутри цикла
 setlocal EnableDelayedExpansion
-::Вставка картинок в незавершённый html файл вывода
 for /f "delims=" %%a In ('dir /a-d /B /N /O:N /S %Templates%') do (
-	set /a counter= !counter!+1
-	set Out=^<div class="container"^>^<div class="Number"^>^<div class="text"^>!counter!^</div^>^</div^>^<img src="%%~nxa"^>^</div^>
+	set Out=^<div class="container"^>^<img src="%%~nxa"^>^<div class="Number"^>^<div class="text"^>%%~na^</div^>^</div^>^</div^>
 	Echo !Out!>>%OutFile%
 )
 setlocal DisableDelayedExpansion
@@ -52,34 +45,40 @@ exit /b
 <html lang="ru" class="no-js"><head>
 <style>
 .holder {
-display: inline;
-font-family: bold Helvetica, Arial, sans-serif;
-font-size: 3vh;
-position:relative;}
-.holder img {max-width: 90%;}
+	display: inline;
+	font-family: bold Helvetica, Arial, sans-serif;
+	font-size: 3vh;
+	position:relative;}
+.holder img {width: 100%;}
 .Number {
-opacity: 0.4;
-background: #343434;
-border: 0.1em solid #141414;
-color: #fff;
-margin: 0 0 -2.2em 75vw;
-position: sticky;
-top: 92vh;
-height: 2em;
-width: 2em;
-border-radius: 100%;
+	opacity: 0.7;
+	background: #343434;
+	border: 0.1em solid #141414;
+	color: #fff;
+	margin-left: auto;
+    margin-right: 8%;
+	position: sticky;
+	bottom: 2.9vh;
+	height: 2em;
+	line-height: 2em;
+	width: 2em;
+	border-radius: 100%;
+	transform: translateY(-50%);
+	transition: transform 0.5s;
+}
+.container {
+    margin-bottom: -2.2em;
 }
 .Number:hover {
-opacity: 1;
+	transform: rotate3d(0, 1, 0, 90deg) translateY(-50%);
 }
 .text {
 text-align: center;
-margin: 0.5em 0 0.5em 0;
 }
 </style>
 </head>
 <body align=center style="background:#343434;">
-<div class="main" style="width: 90%;display: block; margin: auto;">
+<div class="main" style="width:!WIDTH!vw ;display: block; margin: auto;">
 <div class="holder" id="content">
 ::-InsertImages-
 </div></div></body></html>
